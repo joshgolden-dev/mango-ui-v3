@@ -1,5 +1,6 @@
-import React, { FunctionComponent, useEffect, useState } from 'react'
+import React, { FunctionComponent, useEffect, useMemo, useState } from 'react'
 import { PlusCircleIcon, TrashIcon } from '@heroicons/react/outline'
+import { Alert as NotifiAlert, Source } from '@notifi-network/notifi-core'
 import Modal from './Modal'
 import Input, { Label } from './Input'
 import { ElementTitle } from './styles'
@@ -14,15 +15,20 @@ import { EndpointTypes } from '../@types/types'
 import {
   BlockchainEnvironment,
   GqlError,
-  MessageSigner,
   useNotifiClient,
 } from '@notifi-network/notifi-react-hooks'
+import { PhantomWalletAdapter } from '../utils/wallet-adapters/phantom'
 
 interface CreateAlertModalProps {
   onClose: () => void
   isOpen: boolean
   repayAmount?: string
   tokenSymbol?: string
+}
+const nameForHealth = (health: number): string => `Alert Health <= ${health}`
+const healthForAlert = (alert: NotifiAlert): number => {
+  const obj = JSON.parse(alert.filterOptions) ?? {}
+  return obj.threshold ?? 0
 }
 
 const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
@@ -58,35 +64,40 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     case 'mainnet':
       break
     case 'devnet':
-    case 'localnet':
       env = BlockchainEnvironment.DevNet
       break
+    case 'localnet':
+      env = BlockchainEnvironment.LocalNet
+      break
   }
-  const { data, logIn, isAuthenticated, updateAlert } = useNotifiClient({
-    dappAddress: mangoGroup?.publicKey?.toString() ?? '',
-    walletPublicKey: mangoAccount?.publicKey?.toString() ?? '',
-    env,
-  })
-  const [email, setEmail] = useState<string>(data?.emailAddress ?? '')
-  const [phone, setPhone] = useState<string>(data?.phoneNumber ?? '')
-
-  useEffect(() => {
-    // Update state when server data changes
-    setEmail(data?.emailAddress ?? '')
-    setPhone(data?.phoneNumber ?? '')
-  }, [data])
+  const { data, logIn, isAuthenticated, createAlert, deleteAlert } =
+    useNotifiClient({
+      dappAddress: mangoGroup?.publicKey?.toString() ?? '',
+      walletPublicKey: wallet?.publicKey?.toString() ?? '',
+      env,
+    })
+  const [email, setEmail] = useState<string>('')
+  const [phone, setPhone] = useState<string>('')
 
   const handleError = (errors: { message: string }[]) => {
-    const error = errors.length > 0 ? errors[0] : null
-    if (error instanceof GqlError) {
-      setErrorMessage(
-        `${error.message}: ${error.getErrorMessages().join(', ')}`
-      )
+    const err = errors.length > 0 ? errors[0] : null
+    if (err instanceof GqlError) {
+      setErrorMessage(`${err.message}: ${err.getErrorMessages().join(', ')}`)
     } else {
-      setErrorMessage(error?.message ?? 'Unknown error')
+      setErrorMessage(err?.message ?? 'Unknown error')
     }
     setLoading(false)
   }
+
+  const { alerts: notifiAlerts, sources } = data || {}
+  const sourceToUse: Source | undefined = useMemo(() => {
+    return sources?.find((it) => {
+      const filter = it.applicableFilters?.find((filter) => {
+        return filter.filterType === 'VALUE_THRESHOLD'
+      })
+      return filter !== undefined
+    })
+  }, [sources])
 
   const handlePhone = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value
@@ -101,11 +112,20 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   const createNotifiAlert = async function () {
+    if (!(wallet instanceof PhantomWalletAdapter)) {
+      // TODO: Inform user?
+      return
+    }
     setLoading(true)
     // user is not authenticated
     if (!isAuthenticated() && wallet && wallet.publicKey) {
       try {
-        await logIn(wallet as MessageSigner)
+        const adapter = async (message: Uint8Array) => {
+          const signed = await wallet.signMessage(message)
+          console.log('signed', signed, signed.signature)
+          return signed.signature
+        }
+        await logIn({ signMessage: adapter })
       } catch (e) {
         handleError([e])
       }
@@ -114,13 +134,21 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     if (connected && isAuthenticated()) {
       console.log('Sending')
       console.log(email)
+      const filter = sourceToUse.applicableFilters.find(
+        (f) => f.filterType === 'VALUE_THRESHOLD'
+      )
       try {
-        // TODO: switch to use new SDK method
-        await updateAlert({
-          name: `${mangoAccount?.name} notifications`,
+        const healthInt = parseInt(health, 10)
+        await createAlert({
+          filterId: filter.id,
+          sourceId: sourceToUse.id,
+          name: nameForHealth(healthInt),
           emailAddress: email === '' ? null : email,
           phoneNumber: phone.length < 12 ? null : phone,
           telegramId: null,
+          filterOptions: {
+            threshold: healthInt,
+          },
         })
       } catch (e) {
         handleError([e])
@@ -130,8 +158,14 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   const deleteNotifiAlert = async function (alert) {
-    // TODO: use SDK to delete alert from Notifi
-    console.log(alert)
+    const alertToDelete = notifiAlerts?.find((a) => {
+      const health = healthForAlert(a)
+      return health === alert.health
+    })
+    if (alertToDelete !== undefined) {
+      deleteAlert({ alertId: alertToDelete.id })
+    }
+    console.log('deleteNotifiAlert', alert, alertToDelete)
   }
 
   const validateEmailInput = (amount) => {
@@ -177,7 +211,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
 
   async function onDeleteAlert(alert) {
     // delete alert from Notifi
-    await deleteNotifiAlert(alert._id)
+    await deleteNotifiAlert(alert)
 
     // delete alert from db
     actions.deleteAlert(alert._id)
