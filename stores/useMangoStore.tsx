@@ -57,6 +57,9 @@ type ClusterType = 'mainnet' | 'devnet'
 const DEFAULT_MANGO_GROUP_NAME = process.env.NEXT_PUBLIC_GROUP || 'mainnet.1'
 export const CLUSTER = DEFAULT_MANGO_GROUP_NAME.split('.')[0] as ClusterType
 const ENDPOINT = ENDPOINTS.find((e) => e.name === CLUSTER)
+// TODO: switch back to mango alert prod URL
+// const ALERT_SERVICE_URL = 'https://mango-alerts-v3.herokuapp.com';
+const ALERT_SERVICE_URL = 'http://localhost:3001'
 
 export const WEBSOCKET_CONNECTION = new Connection(
   ENDPOINT.websocket,
@@ -740,9 +743,9 @@ const useMangoStore = create<MangoStore>((set, get) => {
           return false
         }
 
-        const fetchUrl = `https://mango-alerts-v3.herokuapp.com/alerts`
+        const fetchUrl = `${ALERT_SERVICE_URL}/alerts`
         const headers = { 'Content-Type': 'application/json' }
-
+        console.log(`Creating alert: ${alert}`)
         const response = await fetch(fetchUrl, {
           method: 'POST',
           headers: headers,
@@ -783,9 +786,9 @@ const useMangoStore = create<MangoStore>((set, get) => {
           state.alerts.success = ''
         })
 
-        const fetchUrl = `https://mango-alerts-v3.herokuapp.com/delete-alert`
+        const fetchUrl = `${ALERT_SERVICE_URL}/delete-alert`
         const headers = { 'Content-Type': 'application/json' }
-
+        console.log(`Deleting id: ${id}`)
         const response = await fetch(fetchUrl, {
           method: 'POST',
           headers: headers,
@@ -826,7 +829,7 @@ const useMangoStore = create<MangoStore>((set, get) => {
 
         const headers = { 'Content-Type': 'application/json' }
         const response = await fetch(
-          `https://mango-alerts-v3.herokuapp.com/alerts/${mangoAccountPk}`,
+          `${ALERT_SERVICE_URL}/alerts/${mangoAccountPk}`,
           {
             method: 'GET',
             headers: headers,

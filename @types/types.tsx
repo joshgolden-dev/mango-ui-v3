@@ -126,6 +126,7 @@ export interface WalletAdapter {
   publicKey: PublicKey
   autoApprove: boolean
   connected: boolean
+  signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>
   signTransaction: (transaction: Transaction) => Promise<Transaction>
   signAllTransactions: (transaction: Transaction[]) => Promise<Transaction[]>
   connect: () => any
@@ -143,3 +144,6 @@ export interface PerpTriggerOrder {
   triggerCondition: 'above' | 'below'
   triggerPrice: number
 }
+
+// Endpoint types used by Notifi
+export type EndpointTypes = 'mainnet' | 'devnet' | 'localnet'

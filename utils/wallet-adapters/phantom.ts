@@ -14,6 +14,7 @@ interface PhantomProvider {
   publicKey?: PublicKey
   isConnected?: boolean
   autoApprove?: boolean
+  signMessage(message: Uint8Array): Promise<{ signature: Uint8Array }>
   signTransaction: (transaction: Transaction) => Promise<Transaction>
   signAllTransactions: (transactions: Transaction[]) => Promise<Transaction[]>
   connect: () => Promise<void>
@@ -53,6 +54,14 @@ export class PhantomWalletAdapter
 
   get autoApprove() {
     return this._provider?.autoApprove || false
+  }
+
+  async signMessage(message: Uint8Array): Promise<{ signature: Uint8Array }> {
+    if (!this._provider) {
+      return null
+    }
+
+    return this._provider.signMessage(message)
   }
 
   async signAllTransactions(
