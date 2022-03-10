@@ -4,7 +4,7 @@ import { Alert as NotifiAlert, Source } from '@notifi-network/notifi-core'
 import Modal from './Modal'
 import Input, { Label } from './Input'
 import { ElementTitle } from './styles'
-import useMangoStore from '../stores/useMangoStore'
+import useMangoStore, { programId } from '../stores/useMangoStore'
 import Button, { LinkButton } from './Button'
 import { notify } from '../utils/notifications'
 import { useTranslation } from 'next-i18next'
@@ -72,7 +72,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
   const { data, logIn, isAuthenticated, createAlert, deleteAlert } =
     useNotifiClient({
-      dappAddress: mangoGroup?.publicKey?.toString() ?? '',
+      dappAddress: programId.toBase58(),
       walletPublicKey: wallet?.publicKey?.toString() ?? '',
       env,
     })
@@ -89,7 +89,14 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     setLoading(false)
   }
 
-  const { alerts: notifiAlerts, sources } = data || {}
+  const { alerts: rawNotifiAlerts, sources } = data || {}
+
+  const notifiAlerts = useMemo(() => {
+    return rawNotifiAlerts.filter((alert) => {
+      return alert.groupName === mangoAccount.publicKey.toBase58()
+    })
+  }, [mangoAccount.publicKey, rawNotifiAlerts])
+
   const sourceToUse: Source | undefined = useMemo(() => {
     return sources?.find((it) => {
       const filter = it.applicableFilters?.find((filter) => {
@@ -142,6 +149,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         await createAlert({
           filterId: filter.id,
           sourceId: sourceToUse.id,
+          groupName: mangoAccount.publicKey.toBase58(),
           name: nameForHealth(healthInt),
           emailAddress: email === '' ? null : email,
           phoneNumber: phone.length < 12 ? null : phone,
