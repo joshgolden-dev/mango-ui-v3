@@ -128,6 +128,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         await logIn({ signMessage: adapter })
       } catch (e) {
         handleError([e])
+        throw e
       }
     }
 
@@ -152,6 +153,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         })
       } catch (e) {
         handleError([e])
+        throw e
       }
     }
     setLoading(false)
@@ -181,7 +183,12 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
 
   async function onCreateAlert() {
     // send alert to Notifi
-    await createNotifiAlert()
+    try {
+      await createNotifiAlert()
+    } catch (e) {
+      handleError([e])
+      return
+    }
 
     if (!email) {
       notify({

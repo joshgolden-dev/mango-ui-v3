@@ -7,6 +7,7 @@ type PhantomEvent = 'disconnect' | 'connect'
 type PhantomRequestMethod =
   | 'connect'
   | 'disconnect'
+  | 'signMessage'
   | 'signTransaction'
   | 'signAllTransactions'
 
