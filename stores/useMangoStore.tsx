@@ -58,8 +58,8 @@ const DEFAULT_MANGO_GROUP_NAME = process.env.NEXT_PUBLIC_GROUP || 'mainnet.1'
 export const CLUSTER = DEFAULT_MANGO_GROUP_NAME.split('.')[0] as ClusterType
 const ENDPOINT = ENDPOINTS.find((e) => e.name === CLUSTER)
 // TODO: switch back to mango alert prod URL
-// const ALERT_SERVICE_URL = 'https://mango-alerts-v3.herokuapp.com';
-const ALERT_SERVICE_URL = 'http://localhost:3001'
+const ALERT_SERVICE_URL = 'https://mango-alerts-v3.herokuapp.com'
+// const ALERT_SERVICE_URL = 'http://localhost:3001'
 
 export const WEBSOCKET_CONNECTION = new Connection(
   ENDPOINT.websocket,
