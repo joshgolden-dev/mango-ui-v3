@@ -12,6 +12,9 @@ interface SlopeWallet {
     }
   }>
   disconnect(): Promise<{ msg: string }>
+  signMessage(message: Uint8Array): Promise<{
+    signature: Uint8Array
+  }>
   signTransaction(message: string): Promise<{
     msg: string
     data: {
@@ -98,6 +101,14 @@ export class SlopeWalletAdapter extends EventEmitter implements WalletAdapter {
       await wallet.disconnect()
       this.emit('disconnect')
     }
+  }
+
+  async signMessage(message: Uint8Array): Promise<{ signature: Uint8Array }> {
+    if (!this._wallet) {
+      return null
+    }
+
+    return this._wallet.signMessage(message)
   }
 
   async signTransaction(transaction: Transaction): Promise<Transaction> {
