@@ -118,6 +118,10 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         const adapter = async (message: Uint8Array) => {
           const signed = await wallet.signMessage(message)
           console.log('signed', signed, signed.signature)
+          // Sollet Adapter signMessage returns Uint8Array
+          if (signed instanceof Uint8Array) {
+            return signed
+          }
           return signed.signature
         }
         await logIn({ signMessage: adapter })
