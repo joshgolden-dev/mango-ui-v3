@@ -26,6 +26,7 @@ export const WALLET_PROVIDERS = [
     name: 'Sollet.io',
     url: 'https://www.sollet.io',
     icon: `${ASSET_URL}/sollet.svg`,
+    adapter: SolletExtensionAdapter as any,
   },
   {
     name: 'Sollet Extension',
