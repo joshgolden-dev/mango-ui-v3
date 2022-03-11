@@ -17,7 +17,6 @@ import {
   GqlError,
   useNotifiClient,
 } from '@notifi-network/notifi-react-hooks'
-import { PhantomWalletAdapter } from '../utils/wallet-adapters/phantom'
 
 interface CreateAlertModalProps {
   onClose: () => void
@@ -112,10 +111,6 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   const createNotifiAlert = async function () {
-    if (!(wallet instanceof PhantomWalletAdapter)) {
-      // TODO: Inform user?
-      return
-    }
     setLoading(true)
     // user is not authenticated
     if (!isAuthenticated() && wallet && wallet.publicKey) {

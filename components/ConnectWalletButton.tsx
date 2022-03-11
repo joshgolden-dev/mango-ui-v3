@@ -35,11 +35,16 @@ const ConnectWalletButton = () => {
     setSelectedWallet(savedProviderUrl)
   }, [savedProviderUrl])
 
-  const handleWalletConect = () => {
-    wallet.connect()
-    set((state) => {
-      state.selectedMangoAccount.initialLoad = true
-    })
+  const handleWalletConect = async () => {
+    try {
+      await wallet.connect()
+      set((state) => {
+        state.selectedMangoAccount.initialLoad = true
+      })
+    } catch (e) {
+      // Handle WalletWindowClosedError
+      // See: https://github.com/solana-labs/wallet-adapter/blob/master/packages/wallets/sollet/src/base.ts#L132
+    }
   }
 
   const handleCloseAccounts = useCallback(() => {
