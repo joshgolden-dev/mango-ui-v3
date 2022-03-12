@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useMemo, useState } from 'react'
 import { PlusCircleIcon, TrashIcon } from '@heroicons/react/outline'
-import { Alert as NotifiAlert, Source } from '@notifi-network/notifi-core'
+import { Source } from '@notifi-network/notifi-core'
 import Modal from './Modal'
 import Input, { Label } from './Input'
 import { ElementTitle } from './styles'
@@ -24,11 +24,8 @@ interface CreateAlertModalProps {
   repayAmount?: string
   tokenSymbol?: string
 }
-const nameForHealth = (health: number): string => `Alert Health <= ${health}`
-const healthForAlert = (alert: NotifiAlert): number => {
-  const obj = JSON.parse(alert.filterOptions) ?? {}
-  return obj.threshold ?? 0
-}
+const nameForAlert = (health: number, email: string, phone: string): string =>
+  `Alert for Email: ${email} Phone: ${phone} When Health <= ${health}`
 
 const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   isOpen,
@@ -88,13 +85,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     setLoading(false)
   }
 
-  const { alerts: rawNotifiAlerts, sources } = data || {}
-
-  const notifiAlerts = useMemo(() => {
-    return rawNotifiAlerts.filter((alert) => {
-      return alert.groupName === mangoAccount.publicKey.toBase58()
-    })
-  }, [mangoAccount.publicKey, rawNotifiAlerts])
+  const { sources } = data || {}
 
   const sourceToUse: Source | undefined = useMemo(() => {
     return sources?.find((it) => {
@@ -124,7 +115,6 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
       try {
         const adapter = async (message: Uint8Array) => {
           const signed = await wallet.signMessage(message)
-          console.log('signed', signed, signed.signature)
           // Sollet Adapter signMessage returns Uint8Array
           if (signed instanceof Uint8Array) {
             return signed
@@ -139,18 +129,16 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     }
 
     if (connected && isAuthenticated()) {
-      console.log('Sending')
-      console.log(email)
       const filter = sourceToUse.applicableFilters.find(
         (f) => f.filterType === 'VALUE_THRESHOLD'
       )
       try {
         const healthInt = parseInt(health, 10)
-        await createAlert({
+        const res = await createAlert({
           filterId: filter.id,
           sourceId: sourceToUse.id,
           groupName: mangoAccount.publicKey.toBase58(),
-          name: nameForHealth(healthInt),
+          name: nameForAlert(healthInt, email, phone),
           emailAddress: email === '' ? null : email,
           phoneNumber: phone.length < 12 ? null : phone,
           telegramId: null,
@@ -158,23 +146,14 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
             threshold: healthInt,
           },
         })
+        // return notifiAlertId
+        return res.id
       } catch (e) {
         handleError([e])
         throw e
       }
     }
     setLoading(false)
-  }
-
-  const deleteNotifiAlert = async function (alert) {
-    const alertToDelete = notifiAlerts?.find((a) => {
-      const health = healthForAlert(a)
-      return health === alert.health
-    })
-    if (alertToDelete !== undefined) {
-      deleteAlert({ alertId: alertToDelete.id })
-    }
-    console.log('deleteNotifiAlert', alert, alertToDelete)
   }
 
   const validateEmailInput = (amount) => {
@@ -189,17 +168,9 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   async function onCreateAlert() {
-    // send alert to Notifi
-    try {
-      await createNotifiAlert()
-    } catch (e) {
-      handleError([e])
-      return
-    }
-
-    if (!email) {
+    if (!email && !phone) {
       notify({
-        title: t('alerts:email-address-required'),
+        title: t('alerts:notifi-type-required'),
         type: 'error',
       })
       return
@@ -210,22 +181,41 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
       })
       return
     }
+
+    let notifiAlertId
+    // send alert to Notifi
+    try {
+      notifiAlertId = await createNotifiAlert()
+    } catch (e) {
+      handleError([e])
+      return
+    }
+
     const body = {
       mangoGroupPk: mangoGroup.publicKey.toString(),
       mangoAccountPk: mangoAccount.publicKey.toString(),
       health,
-      alertProvider: 'mail',
+      alertProvider: 'notifi',
       email,
+      notifiAlertId,
     }
     const success: any = await actions.createAlert(body)
     if (success) {
+      setErrorMessage('')
       setShowAlertForm(false)
     }
   }
 
   async function onDeleteAlert(alert) {
     // delete alert from Notifi
-    await deleteNotifiAlert(alert)
+    try {
+      await deleteAlert({ alertId: alert.notifiAlertId })
+    } catch (e) {
+      handleError([e])
+      // if an error thrown from notifi, like 404
+      // do we want to stop delelting it from mango db ?
+      return
+    }
 
     // delete alert from db
     actions.deleteAlert(alert._id)
@@ -268,6 +258,11 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
                 </div>
               </Modal.Header>
               <div className="mt-2 border-b border-th-fgd-4">
+                {errorMessage.length > 0 ? (
+                  <div className="mt-1 text-xxs text-th-fgd-3">
+                    {errorMessage}
+                  </div>
+                ) : null}
                 {activeAlerts.map((alert, index) => (
                   <div
                     className="flex items-center justify-between border-t border-th-fgd-4 p-4"
@@ -365,7 +360,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
               <Button
                 className="mt-6 w-full"
                 onClick={() => onCreateAlert()}
-                disabled={isLoading}
+                disabled={isLoading || (!email && !phone)}
               >
                 {t('alerts:create-alert')}
               </Button>

@@ -116,14 +116,16 @@ export interface Alert {
   open: boolean
   timestamp: number
   triggeredTimestamp: number | undefined
+  notifiAlertId: string
 }
 
 interface AlertRequest {
-  alertProvider: 'mail'
+  alertProvider: 'mail' | 'notifi'
   health: number
   mangoGroupPk: string
   mangoAccountPk: string
   email: string | undefined
+  notifiAlertId: string
 }
 
 export type MangoStore = {
@@ -815,6 +817,7 @@ const useMangoStore = create<
             health: req.health,
             open: true,
             timestamp: Date.now(),
+            notifiAlertId: req.notifiAlertId,
           }
 
           set((state) => {
