@@ -108,19 +108,21 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     }
   }
 
+  // message signer to login from SDK
+  const adapter = async (message: Uint8Array) => {
+    const signed = await wallet.signMessage(message)
+    // Sollet Adapter signMessage returns Uint8Array
+    if (signed instanceof Uint8Array) {
+      return signed
+    }
+    return signed.signature
+  }
+
   const createNotifiAlert = async function () {
     setLoading(true)
     // user is not authenticated
     if (!isAuthenticated() && wallet && wallet.publicKey) {
       try {
-        const adapter = async (message: Uint8Array) => {
-          const signed = await wallet.signMessage(message)
-          // Sollet Adapter signMessage returns Uint8Array
-          if (signed instanceof Uint8Array) {
-            return signed
-          }
-          return signed.signature
-        }
         await logIn({ signMessage: adapter })
       } catch (e) {
         handleError([e])
@@ -148,6 +150,29 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         })
         // return notifiAlertId
         return res.id
+      } catch (e) {
+        handleError([e])
+        throw e
+      }
+    }
+    setLoading(false)
+  }
+
+  const deleteNotifiAlert = async function (alert) {
+    setLoading(true)
+    // user is not authenticated
+    if (!isAuthenticated() && wallet && wallet.publicKey) {
+      try {
+        await logIn({ signMessage: adapter })
+      } catch (e) {
+        handleError([e])
+        throw e
+      }
+    }
+
+    if (connected && isAuthenticated()) {
+      try {
+        await deleteAlert({ alertId: alert.notifiAlertId })
       } catch (e) {
         handleError([e])
         throw e
@@ -209,7 +234,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   async function onDeleteAlert(alert) {
     // delete alert from Notifi
     try {
-      await deleteAlert({ alertId: alert.notifiAlertId })
+      await deleteNotifiAlert(alert)
     } catch (e) {
       handleError([e])
       // if an error thrown from notifi, like 404
