@@ -16,6 +16,7 @@ import {
   BlockchainEnvironment,
   GqlError,
   useNotifiClient,
+  isAlertObsolete,
 } from '@notifi-network/notifi-react-hooks'
 
 interface CreateAlertModalProps {
@@ -85,7 +86,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     setLoading(false)
   }
 
-  const { sources } = data || {}
+  const { sources, alerts } = data || {}
 
   const sourceToUse: Source | undefined = useMemo(() => {
     return sources?.find((it) => {
@@ -145,6 +146,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
           phoneNumber: phone.length < 12 ? null : phone,
           telegramId: null,
           filterOptions: {
+            alertFrequency: 'SINGLE',
             threshold: healthInt,
           },
         })
@@ -257,6 +259,17 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   useEffect(() => {
     actions.loadAlerts(mangoAccount.publicKey)
   }, [])
+
+  // Delete notifi Alerts that have fired
+  useEffect(() => {
+    const firedAlert = alerts?.find(isAlertObsolete)
+
+    if (firedAlert !== undefined && firedAlert.id !== null) {
+      deleteAlert({ alertId: firedAlert.id }).then(() => {
+        console.log('Successfully deleted notifi alert')
+      })
+    }
+  }, [alerts, deleteAlert])
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
