@@ -187,9 +187,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
 
     if (alertsToCleanUp === undefined) return
     alertsToCleanUp.forEach((alert) => {
-      deleteAlert({ alertId: alert.id }).then(() => {
-        console.log('Successfully deleted notifi alert')
-      })
+      deleteAlert({ alertId: alert.id })
     })
   }
 
@@ -277,9 +275,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     const firedAlert = alerts?.find(isAlertObsolete)
 
     if (firedAlert !== undefined && firedAlert.id !== null) {
-      deleteAlert({ alertId: firedAlert.id }).then(() => {
-        console.log('Successfully deleted notifi alert')
-      })
+      deleteAlert({ alertId: firedAlert.id })
     }
   }, [alerts, deleteAlert])
 
