@@ -852,19 +852,8 @@ const useMangoStore = create<
             body: JSON.stringify(req),
           })
 
-<<<<<<< HEAD
           if (response.ok) {
             const alerts = get().alerts.activeAlerts
-=======
-        const fetchUrl = `https://mango-alerts-v3.herokuapp.com/alerts`
-        const headers = { 'Content-Type': 'application/json' }
-
-        const response = await fetch(fetchUrl, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify(req),
-        })
->>>>>>> 6028e80 (Cleanup)
 
             set((state) => {
               state.alerts.activeAlerts = [alert as Alert].concat(alerts)
@@ -892,7 +881,6 @@ const useMangoStore = create<
           const set = get().set
 
           set((state) => {
-<<<<<<< HEAD
             state.alerts.submitting = true
             state.alerts.error = ''
             state.alerts.success = ''
@@ -903,84 +891,6 @@ const useMangoStore = create<
 
           const response = await fetch(fetchUrl, {
             method: 'POST',
-=======
-            state.alerts.activeAlerts = [alert as Alert].concat(alerts)
-            state.alerts.submitting = false
-            state.alerts.success = 'Alert saved'
-          })
-          notify({
-            title: 'Alert saved',
-            type: 'success',
-          })
-          return true
-        } else {
-          set((state) => {
-            state.alerts.error = 'Something went wrong'
-            state.alerts.submitting = false
-          })
-          notify({
-            title: 'Something went wrong',
-            type: 'error',
-          })
-          return false
-        }
-      },
-      async deleteAlert(id: string) {
-        const set = get().set
-
-        set((state) => {
-          state.alerts.submitting = true
-          state.alerts.error = ''
-          state.alerts.success = ''
-        })
-
-        const fetchUrl = `https://mango-alerts-v3.herokuapp.com/delete-alert`
-        const headers = { 'Content-Type': 'application/json' }
-
-        const response = await fetch(fetchUrl, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({ id }),
-        })
-
-        if (response.ok) {
-          const alerts = get().alerts.activeAlerts
-          set((state) => {
-            state.alerts.activeAlerts = alerts.filter(
-              (alert) => alert._id !== id
-            )
-            state.alerts.submitting = false
-            state.alerts.success = 'Alert deleted'
-          })
-          notify({
-            title: 'Alert deleted',
-            type: 'success',
-          })
-        } else {
-          set((state) => {
-            state.alerts.error = 'Something went wrong'
-            state.alerts.submitting = false
-          })
-          notify({
-            title: 'Something went wrong',
-            type: 'error',
-          })
-        }
-      },
-      async loadAlerts(mangoAccountPk: PublicKey) {
-        const set = get().set
-
-        set((state) => {
-          state.alerts.error = ''
-          state.alerts.loading = true
-        })
-
-        const headers = { 'Content-Type': 'application/json' }
-        const response = await fetch(
-          `https://mango-alerts-v3.herokuapp.com/alerts/${mangoAccountPk}`,
-          {
-            method: 'GET',
->>>>>>> 6028e80 (Cleanup)
             headers: headers,
             body: JSON.stringify({ id }),
           })
