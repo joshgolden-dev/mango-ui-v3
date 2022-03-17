@@ -47,8 +47,6 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   const [health, setHealth] = useState('')
   const [showCustomHealthForm, setShowCustomHealthForm] = useState(false)
   const [showAlertForm, setShowAlertForm] = useState(false)
-  // notifi loading state
-  const [isLoading, setLoading] = useState<boolean>(false)
   // notifi error message
   const [errorMessage, setErrorMessage] = useState<string>('')
 
@@ -83,10 +81,9 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     } else {
       setErrorMessage(err?.message ?? 'Unknown error')
     }
-    setLoading(false)
   }
 
-  const { sources, alerts } = data || {}
+  const { alerts, sources } = data || {}
 
   const sourceToUse: Source | undefined = useMemo(() => {
     return sources?.find((it) => {
@@ -120,7 +117,6 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   const createNotifiAlert = async function () {
-    setLoading(true)
     // user is not authenticated
     if (!isAuthenticated() && wallet && wallet.publicKey) {
       try {
@@ -157,11 +153,9 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         throw e
       }
     }
-    setLoading(false)
   }
 
   const deleteNotifiAlert = async function (alert) {
-    setLoading(true)
     // user is not authenticated
     if (!isAuthenticated() && wallet && wallet.publicKey) {
       try {
@@ -180,7 +174,23 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         throw e
       }
     }
-    setLoading(false)
+  }
+
+  // Clean up alerts that don't exist in DB
+  const consolidateNotifiAlerts = async function () {
+    const alertsToCleanUp = alerts?.filter((alert) => {
+      const isAlertExist = activeAlerts?.some(
+        (a) => a.notifiAlertId === alert.id
+      )
+      return !isAlertExist
+    })
+
+    if (alertsToCleanUp === undefined) return
+    alertsToCleanUp.forEach((alert) => {
+      deleteAlert({ alertId: alert.id }).then(() => {
+        console.log('Successfully deleted notifi alert')
+      })
+    })
   }
 
   const validateEmailInput = (amount) => {
@@ -234,18 +244,20 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   async function onDeleteAlert(alert) {
+    // delete alert from db
+    actions.deleteAlert(alert._id)
+
     // delete alert from Notifi
     try {
       await deleteNotifiAlert(alert)
     } catch (e) {
       handleError([e])
-      // if an error thrown from notifi, like 404
-      // do we want to stop delelting it from mango db ?
-      return
     }
+  }
 
-    // delete alert from db
-    actions.deleteAlert(alert._id)
+  async function onNewAlert() {
+    await consolidateNotifiAlerts()
+    setShowAlertForm(true)
   }
 
   const handleCancelCreateAlert = () => {
@@ -286,7 +298,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
                   <Button
                     className="min-w-20 flex h-8 items-center justify-center pt-0 pb-0 text-xs"
                     disabled={activeAlerts.length >= ALERT_LIMIT}
-                    onClick={() => setShowAlertForm(true)}
+                    onClick={onNewAlert}
                   >
                     <div className="flex items-center">
                       <PlusCircleIcon className="mr-1.5 h-4 w-4" />
@@ -398,7 +410,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
               <Button
                 className="mt-6 w-full"
                 onClick={() => onCreateAlert()}
-                disabled={isLoading || (!email && !phone)}
+                disabled={!email && !phone}
               >
                 {t('alerts:create-alert')}
               </Button>
@@ -429,7 +441,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
               </Modal.Header>
               <Button
                 className="m-auto flex justify-center"
-                onClick={() => setShowAlertForm(true)}
+                onClick={onNewAlert}
               >
                 {t('alerts:new-alert')}
               </Button>
