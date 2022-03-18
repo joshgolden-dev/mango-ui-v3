@@ -65,7 +65,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
       env = BlockchainEnvironment.LocalNet
       break
   }
-  const { data, logIn, isAuthenticated, createAlert, deleteAlert } =
+  const { data, fetchData, logIn, isAuthenticated, createAlert, deleteAlert } =
     useNotifiClient({
       dappAddress: programId.toBase58(),
       walletPublicKey: wallet?.publicKey?.toString() ?? '',
@@ -83,15 +83,18 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
     }
   }
 
-  const { alerts, sources } = data || {}
-
-  const sourceToUse: Source | undefined = useMemo(() => {
+  const getSourceToUse = (sources) => {
     return sources?.find((it) => {
       const filter = it.applicableFilters?.find((filter) => {
         return filter.filterType === 'VALUE_THRESHOLD'
       })
       return filter !== undefined
     })
+  }
+
+  let { alerts, sources } = data || {}
+  let sourceToUse: Source | undefined = useMemo(() => {
+    return getSourceToUse(sources)
   }, [sources])
 
   const handlePhone = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,11 +112,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   // message signer to login from SDK
   const adapter = async (message: Uint8Array) => {
     const signed = await wallet.signMessage(message)
-    // Sollet Adapter signMessage returns Uint8Array
-    if (signed instanceof Uint8Array) {
-      return signed
-    }
-    return signed.signature
+    return signed
   }
 
   const createNotifiAlert = async function () {
@@ -125,6 +124,9 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         handleError([e])
         throw e
       }
+      // refresh data after login
+      ;({ alerts, sources } = await fetchData())
+      sourceToUse = getSourceToUse(sources)
     }
 
     if (connected && isAuthenticated()) {
@@ -254,7 +256,15 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   }
 
   async function onNewAlert() {
-    await consolidateNotifiAlerts()
+    if (connected && isAuthenticated()) {
+      try {
+        await consolidateNotifiAlerts()
+      } catch (e) {
+        handleError([e])
+        throw e
+      }
+    }
+
     setShowAlertForm(true)
   }
 
@@ -452,11 +462,11 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         </div>
       )}
       <Modal.Footer>
-        <div className="flex item-center justify-between w-full mt-4 text-th-fgd-3">
+        <div className="item-center mt-4 flex w-full justify-between text-th-fgd-3">
           <div className="flex">
             <span>{t('alerts:powered-by')}</span>
             <span className="ml-2">
-              <NotifiIcon className="w-10 h-5"></NotifiIcon>
+              <NotifiIcon className="h-5 w-10"></NotifiIcon>
             </span>
           </div>
           <div>

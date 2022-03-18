@@ -126,7 +126,7 @@ export interface WalletAdapter {
   publicKey: PublicKey
   autoApprove: boolean
   connected: boolean
-  signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>
+  signMessage: (message: Uint8Array) => Promise<Uint8Array>
   signTransaction: (transaction: Transaction) => Promise<Transaction>
   signAllTransactions: (transaction: Transaction[]) => Promise<Transaction[]>
   connect: () => any
