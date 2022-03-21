@@ -5,6 +5,7 @@ import { WalletAdapter } from '../../@types/types'
 
 interface BitpieWallet {
   getAccount(): Promise<string>
+  signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>
   signTransaction(transaction: Transaction): Promise<Transaction>
   signAllTransactions(transactions: Transaction[]): Promise<Transaction[]>
 }
@@ -86,6 +87,18 @@ export class BitpieWalletAdapter extends EventEmitter implements WalletAdapter {
     }
 
     this.emit('disconnect')
+  }
+
+  async signMessage(message: Uint8Array): Promise<{ signature: Uint8Array }> {
+    try {
+      const wallet = this._wallet
+      if (!wallet) return
+
+      return await wallet.signMessage(message)
+    } catch (error: any) {
+      this.emit('error', error)
+      throw error
+    }
   }
 
   async signTransaction(transaction: Transaction): Promise<Transaction> {

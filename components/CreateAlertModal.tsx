@@ -112,7 +112,11 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
   // message signer to login from SDK
   const adapter = async (message: Uint8Array) => {
     const signed = await wallet.signMessage(message)
-    return signed
+    // Sollet Adapter signMessage returns Uint8Array
+    if (signed instanceof Uint8Array) {
+      return signed
+    }
+    return signed.signature
   }
 
   const createNotifiAlert = async function () {
@@ -228,18 +232,20 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
       return
     }
 
-    const body = {
-      mangoGroupPk: mangoGroup.publicKey.toString(),
-      mangoAccountPk: mangoAccount.publicKey.toString(),
-      health,
-      alertProvider: 'notifi',
-      email,
-      notifiAlertId,
-    }
-    const success: any = await actions.createAlert(body)
-    if (success) {
-      setErrorMessage('')
-      setShowAlertForm(false)
+    if (notifiAlertId) {
+      const body = {
+        mangoGroupPk: mangoGroup.publicKey.toString(),
+        mangoAccountPk: mangoAccount.publicKey.toString(),
+        health,
+        alertProvider: 'notifi',
+        email,
+        notifiAlertId,
+      }
+      const success: any = await actions.createAlert(body)
+      if (success) {
+        setErrorMessage('')
+        setShowAlertForm(false)
+      }
     }
   }
 

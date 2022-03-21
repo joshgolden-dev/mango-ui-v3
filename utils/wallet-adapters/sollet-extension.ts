@@ -1,10 +1,10 @@
-import Wallet from '@project-serum/sol-wallet-adapter'
+import { SolletWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { notify } from '../../utils/notifications'
 
 export function SolletExtensionAdapter(_, network) {
   const sollet = (window as any).sollet
   if (sollet) {
-    return new Wallet(sollet, network)
+    return new SolletWalletAdapter({ network })
   }
 
   return {

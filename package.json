@@ -24,6 +24,7 @@
     "@notifi-network/notifi-react-hooks": "^0.8.1",
     "@project-serum/serum": "0.13.55",
     "@project-serum/sol-wallet-adapter": "0.2.0",
+    "@solana/wallet-adapter-wallets": "^0.15.5",
     "@solana/web3.js": "^1.31.0",
     "@solflare-wallet/pfp": "^0.0.6",
     "@solflare-wallet/sdk": "^1.0.10",
