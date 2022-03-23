@@ -129,7 +129,7 @@ const CreateAlertModal: FunctionComponent<CreateAlertModalProps> = ({
         throw e
       }
       // refresh data after login
-      ;({ alerts, sources } = await fetchData())
+      ({ alerts, sources } = await fetchData())
       sourceToUse = getSourceToUse(sources)
     }
 
