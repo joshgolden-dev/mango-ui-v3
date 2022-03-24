@@ -1,4 +1,4 @@
-import { SolletWalletAdapter } from '@solana/wallet-adapter-wallets'
+import { SolletWalletAdapter } from '@solana/wallet-adapter-sollet'
 import { notify } from '../../utils/notifications'
 
 export function SolletExtensionAdapter(_, network) {
